@@ -14,6 +14,7 @@ var Message = {};
 
     Message.tab.sendMessage = function (target, action, data, responseCallback) {
         var tabId = (typeof target === 'number') ? target : target.tab.id;
+        responseCallback = responseCallback || function () {};
         chrome.tabs.sendMessage(tabId, { 'action': action, 'data': data }, responseCallback);
     };
 
