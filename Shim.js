@@ -12,9 +12,9 @@ var Message = {};
         });
     };
 
-    Message.tab.sendMessage = function (target, action, data) {
+    Message.tab.sendMessage = function (target, action, data, responseCallback) {
         var tabId = (typeof target === 'number') ? target : target.tab.id;
-        chrome.tabs.sendMessage(tabId, { 'action': action, 'data': data });
+        chrome.tabs.sendMessage(tabId, { 'action': action, 'data': data }, responseCallback);
     };
 
     Message.extension = {};
@@ -27,8 +27,8 @@ var Message = {};
         });
     };
 
-    Message.extension.sendMessage = function (action, data) {
-        chrome.extension.sendMessage({ 'action': action, 'data': data });
+    Message.extension.sendMessage = function (action, data, responseCallback) {
+        chrome.extension.sendMessage({ 'action': action, 'data': data }, responseCallback);
     };
 
 })();
@@ -37,8 +37,8 @@ var Extension = {};
 
 (function () {
 
-    Extension.getURL = function (url) {
-        return chrome.extension.getURL(url);
+    Extension.getURL = function (path) {
+        return chrome.extension.getURL(path);
     };
 
     Extension.forAllTabs = function (fn) {
