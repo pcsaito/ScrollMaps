@@ -28,6 +28,7 @@ var Message = {};
     };
 
     Message.extension.sendMessage = function (action, data, responseCallback) {
+        responseCallback = responseCallback || function () {};
         chrome.extension.sendMessage({ 'action': action, 'data': data }, responseCallback);
     };
 
