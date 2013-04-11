@@ -1,43 +1,19 @@
 /*global $ Message pref */
 
-var ScrollableMap = function (div, type, id) {
+var ScrollableMap = function (div, type) {
     var self = this;
 
     var mapClicked; // whether the map has ever been clicked (to activate the map)
     var bodyScrolls = false;
-
-    // Whether an element is scrollable
-    function scrollable (element) {
-        if (!element || element === document) return false;
-        if (element.scrollHeight <= element.clientHeight) return false;
-        var overflow = $(element).css('overflow');
-        return overflow !== 'hidden' && overflow !== 'visible';
-    }
-
-    function hasScrollableParent (element) {
-        return scrollable(element) || (element.parentNode && hasScrollableParent(element.parentNode));
-    }
-
-    if (type === ScrollableMap.TYPE_IFRAME) {
-        setTimeout( function () {
-            Message.extension.sendMessage('listenBodyScrolls', {});
-        }, 500);
-        Message.extension.addListener(function(action, data, sender, sendResponse){
-            if (action === 'setBodyScrolls') setBodyScrolls(data);
-        });
-    } else {
-        window.addEventListener('resize', function () {
-            setBodyScrolls(hasScrollableParent(div.parentNode));
-        });
-        window.setTimeout(function () {
-            setBodyScrolls(hasScrollableParent(div.parentNode));
-        }, 1000);
-    }
-
-    function setBodyScrolls (scrolls) {
-        bodyScrolls = scrolls;
-        if (bodyScrolls) { hideControls(); } else { showControls(); }
-    }
+    setTimeout( function () {
+        Message.extension.sendMessage('listenBodyScrolls', {});
+    }, 500);
+    Message.extension.addListener(function(action, data, sender, sendResponse){
+        if (action === 'setBodyScrolls') {
+            setBodyScrolls(data);
+        }
+    });
+    function setBodyScrolls (scrolls) { bodyScrolls = scrolls; (bodyScrolls) ? hideControls() : showControls(); }
     function mapRequiresActivation () { return bodyScrolls; }
 
     var States = { idle: 0, scrolling: 1, zooming: 2 };
@@ -52,8 +28,8 @@ var ScrollableMap = function (div, type, id) {
         self.type = type;
         div.addEventListener('mousewheel', function (event) { self.handleWheelEvent(event); }, true);
         initFrame(div);
-        // Fix for webkit bug
         document.documentElement.style.overflow = 'scroll';
+        // document.querySelector('html').style.overflow = 'scroll';
     };
 
     self.init(div, type);
@@ -257,39 +233,46 @@ ScrollableMap.TYPE_IFRAME = 1;
 ScrollableMap.TYPE_API = 2;
 
 var SMLowPassFilter = function SMLowPassFilter () { this.init.apply(this, arguments); };
-SMLowPassFilter.SMOOTHING = 0.5;
 
-SMLowPassFilter.prototype = {
-    init: function () {
+SMLowPassFilter.prototype = new (function () {
+    SMLowPassFilter.SMOOTHING = 0.5;
+
+    this.init = function () {
         this.data = 0;
         this.lastDataTime = 0;
-    },
-    push: function (data, time) {
+    };
+
+    this.push = function (data, time) {
         this.data = this.data * SMLowPassFilter.SMOOTHING + data * (1 - SMLowPassFilter.SMOOTHING);
         this.lastDataTime = time || new Date().getTime();
-    },
-    getAverage: function (time) {
+    };
+
+    this.getAverage = function (time) {
         time = time || new Date().getTime();
         if (this.lastDataTime === 0) {
             return 0;
         }
         return this.data * Math.pow(SMLowPassFilter.SMOOTHING, (time - this.lastDataTime) / 20);
-    },
-    flush: function () {
+    };
+
+    this.flush = function () {
         this.data = 0;
-    }
-};
+    };
+
+})();
 
 var SMAccelerationDetector = function SMAccelerationDetector() { this.init.apply(this, arguments); };
 
-SMAccelerationDetector.prototype = {
-    init: function () {
+SMAccelerationDetector.prototype = new (function() {
+
+    this.init = function () {
         this.max = 0;
         this.maxTime = 0;
         this.lastDelta = 0;
         this.lastTime = new Date().getTime();
-    },
-    isAccelerating: function(delta, time){
+    };
+
+    this.isAccelerating = function(delta, time){
         delta = delta / (time - this.lastTime);
         setTimer('stateChangeTimer', this.newScrollAction.bind(this), 200);
 
@@ -310,24 +293,29 @@ SMAccelerationDetector.prototype = {
             output = true;
         }
         return output;
-    },
-    newScrollAction: function (){
+    };
+
+    this.newScrollAction = function (){
         this.max = 0;
         this.maxTime = 0;
         this.lastDelta = 0;
-    }
-};
+    };
+    
+})();
 
 var SM2DAccelerationDetector = function SM2DAccelerationDetector() { this.init.apply(this, arguments); };
 
-SM2DAccelerationDetector.prototype = {
-    init: function () {
+SM2DAccelerationDetector.prototype = new (function() {
+
+    this.init = function () {
         this.yAccelerationDetector = new SMAccelerationDetector();
         this.xAccelerationDetector = new SMAccelerationDetector();
-    },
-    isAccelerating: function (deltaX, deltaY, time) {
+    };
+
+    this.isAccelerating = function (deltaX, deltaY, time) {
         var x = this.xAccelerationDetector.isAccelerating(deltaX, time);
         var y = this.yAccelerationDetector.isAccelerating(deltaY, time);
         return x || y;
-    }
-};
+    };
+    
+})();
